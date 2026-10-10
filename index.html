@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tospector - Video Stabilizer</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  body{font-family:'Space Grotesk',sans-serif}
+  .mono{font-family:'JetBrains Mono',monospace}
+  .glass{backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);}
+</style>
+</head>
+<body class="bg-[#0a0a0a] text-white min-h-screen flex flex-col">
+<header class="border-b border-white/10 px-6 py-4 flex justify-between items-center sticky top-0 bg-[#0a0a0a]/80 glass z-10">
+  <div class="flex items-center gap-3">
+    <div class="w-8 h-8 rounded-lg bg-white text-black flex items-center justify-center font-bold">T</div>
+    <span class="font-bold tracking-tight">TOSPECTOR<span class="text-white/50 font-normal">/STABILIZER</span></span>
+  </div>
+  <div class="mono text-[11px] text-white/40">v-1 • vidstab</div>
+</header>
+<main class="flex-1 max-w-6xl w-full mx-auto px-6 py-10 grid lg:grid-cols-[1.2fr_0.8fr] gap-8">
+  <div class="space-y-6">
+    <div>
+      <h1 class="text-4xl md:text-5xl font-bold leading-[0.9] tracking-tight">STABILKAN<br/>VIDEO<br/><span class="text-white/30">TOSPECTOR<br/>FAST.</span></h1>
+      <p class="mt-4 text-white/60 text-sm leading-relaxed max-w-md">Upload video goyang, proses 2-pass vidstabdetect + vidstabtransform.<b class="text-white">zoom minimal (optzoom=2, zoom=0)</b> dan <b class="text-white">(CRF 18, preset medium)</b>.</p>
+    </div>
+    <div id="dropzone" class="group relative border border-dashed border-white/20 rounded-[24px] p-8 md:p-10 hover:border-white/40 transition cursor-pointer bg-white/[0.02] hover:bg-white/[0.04]">
+      <input type="file" id="fileInput" accept="video/*" class="hidden" />
+      <div class="flex flex-col items-center text-center gap-4">
+        <div class="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center text-2xl group-hover:scale-110 transition">↑</div>
+        <div>
+          <p class="font-medium">Drag & drop video atau klik</p>
+          <p class="mono text-[11px] text-white/40 mt-1">MP4 / MOV / MKV • max 300MB</p>
+        </div>
+        <div id="fileInfo" class="hidden mt-2 px-3 py-1 rounded-full bg-white/10 mono text-[11px]"></div>
+      </div>
+      <video id="previewOriginal" class="hidden mt-6 w-full rounded-2xl bg-black max-h-[360px]" controls muted></video>
+    </div>
+    <div id="progressBox" class="hidden rounded-[20px] border border-white/10 p-5 bg-white/[0.03] space-y-3">
+      <div class="flex justify-between mono text-[11px]">
+        <span id="stageText" class="text-white/60">Menunggu...</span>
+        <span id="percentText" class="font-bold">0%</span>
+      </div>
+      <div class="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+        <div id="progressBar" class="h-full bg-white transition-all duration-300" style="width:0%"></div>
+      </div>
+      <div id="logBox" class="mono text-[11px] text-white/40 max-h-[80px] overflow-auto space-y-1"></div>
+    </div>
+    <div id="resultBox" class="hidden rounded-[24px] border border-white/10 p-6 bg-[#14ff72]/10 space-y-4">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 bg-[#14ff72] rounded-full animate-pulse"></span>
+        <p class="font-bold text-sm">STABILIZED DONE ✨</p>
+      </div>
+      <video id="previewResult" class="w-full rounded-2xl bg-black max-h-[400px]" controls></video>
+      <div class="flex gap-2">
+        <a id="downloadBtn" href="#" download class="flex-1 bg-white text-black rounded-full py-3 text-center font-bold text-sm hover:bg-white/90 transition">Download MP4</a>
+        <button id="resetBtn" class="px-6 rounded-full border border-white/20 mono text-[11px] hover:bg-white/10">Reset</button>
+      </div>
+    </div>
+  </div>
+  <div class="space-y-6">
+    <div class="rounded-[24px] border border-white/10 p-6 bg-white/[0.02] space-y-6">
+      <h3 class="font-bold text-sm tracking-wide">PENGATURAN STABILIZER</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="mono text-[11px] text-white/50 flex justify-between"><span>Shakiness (getaran)</span><span id="valShakiness" class="text-white">5</span></label>
+          <input type="range" id="shakiness" min="1" max="10" value="5" class="w-full accent-white">
+          <p class="mono text-[10px] text-white/30 mt-1">1=halus, 10=parah ( default 5 )</p>
+        </div>
+        <div>
+          <label class="mono text-[11px] text-white/50 flex justify-between"><span>Smoothing</span><span id="valSmoothing" class="text-white">15</span></label>
+          <input type="range" id="smoothing" min="5" max="50" value="15" class="w-full accent-white">
+          <p class="mono text-[10px] text-white/30 mt-1">Semakin besar semakin stabil tapi semakin banyak crop. 15 = balance.</p>
+        </div>
+        <div>
+          <label class="mono text-[11px] text-white/50 flex justify-between"><span>Kualitas (CRF)</span><span id="valCrf" class="text-white">18</span></label>
+          <input type="range" id="crf" min="14" max="26" value="18" class="w-full accent-white">
+          <p class="mono text-[10px] text-white/30 mt-1">14=lossless besar, 18=high quality, 23=default kompres.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="mono text-[11px] text-white/50">Preset</label>
+            <select id="preset" class="w-full mt-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-3 py-2 mono text-[12px]">
+              <option value="medium" selected>medium (high quality)</option>
+              <option value="slow">slow (lebih bagus)</option>
+              <option value="fast">fast (bot lama)</option>
+            </select>
+          </div>
+          <div>
+            <label class="mono text-[11px] text-white/50">Audio</label>
+            <select id="keepAudio" class="w-full mt-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-3 py-2 mono text-[12px]">
+              <option value="true" selected>Keep audio</option>
+              <option value="false">Remove audio</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="pt-4 border-t border-white/10 space-y-3">
+        <div class="rounded-xl bg-black border border-white/10 p-3 mono text-[10px] leading-relaxed text-white/50">
+          <p class="text-white/80 font-bold mb-1">FIX ANTI ZOOM DEKET:</p>
+          optzoom=2 (jangan zoom kalau bisa)<br/>
+          zoom=0 (no extra zoom) • sebelumnya 5<br/>
+          zoomspeed=0.25 • smoothing 15<br/>
+          <br/>
+          <p class="text-white/80 font-bold mb-1">FIX ANTI KOMPRES:</p>
+          CRF 18 + preset medium + yuv420p + faststart<br/>
+          audio AAC 192k
+        </div>
+        <button id="stabilizeBtn" disabled class="w-full bg-white/10 text-white/30 rounded-full py-3 font-bold text-sm cursor-not-allowed transition">Upload dulu video</button>
+        <p class="mono text-[10px] text-white/30 text-center">Router: POST /upload/app-v1/db → GET /stabilizer/v-1/tospector?task=ID</p>
+      </div>
+    </div>
+  </div>
+</main>
+<script>
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const fileInfo = document.getElementById('fileInfo');
+const previewOriginal = document.getElementById('previewOriginal');
+const progressBox = document.getElementById('progressBox');
+const stageText = document.getElementById('stageText');
+const percentText = document.getElementById('percentText');
+const progressBar = document.getElementById('progressBar');
+const logBox = document.getElementById('logBox');
+const resultBox = document.getElementById('resultBox');
+const previewResult = document.getElementById('previewResult');
+const downloadBtn = document.getElementById('downloadBtn');
+const stabilizeBtn = document.getElementById('stabilizeBtn');
+const resetBtn = document.getElementById('resetBtn');
+let currentTaskId = null;
+let selectedFile = null;
+function log(msg){
+  const d=document.createElement('div');
+  d.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`;
+  logBox.appendChild(d);
+  logBox.scrollTop=logBox.scrollHeight;
+}
+dropzone.addEventListener('click', ()=> fileInput.click());
+dropzone.addEventListener('dragover', e=>{ e.preventDefault(); dropzone.classList.add('border-white/60'); });
+dropzone.addEventListener('dragleave', ()=> dropzone.classList.remove('border-white/60'));
+dropzone.addEventListener('drop', e=>{
+  e.preventDefault();
+  dropzone.classList.remove('border-white/60');
+  if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e=>{ if(e.target.files[0]) handleFile(e.target.files[0]); });
+function handleFile(file){
+  if(!file.type.startsWith('video/')) return alert('Hanya video!');
+  selectedFile=file;
+  fileInfo.classList.remove('hidden');
+  fileInfo.textContent=`${file.name} • ${(file.size/1024/1024).toFixed(2)} MB`;
+  previewOriginal.classList.remove('hidden');
+  previewOriginal.src=URL.createObjectURL(file);
+  stabilizeBtn.disabled=false;
+  stabilizeBtn.classList.remove('bg-white/10','text-white/30','cursor-not-allowed');
+  stabilizeBtn.classList.add('bg-white','text-black','hover:bg-white/90','cursor-pointer');
+  stabilizeBtn.textContent='Stabilkan Sekarang';
+}
+['shakiness','smoothing','crf'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', e=>{
+    document.getElementById('val'+id.charAt(0).toUpperCase()+id.slice(1)).textContent=e.target.value;
+  });
+});
+stabilizeBtn.addEventListener('click', async ()=>{
+  if(!selectedFile) return;
+  stabilizeBtn.disabled=true;
+  stabilizeBtn.textContent='Uploading...';
+  progressBox.classList.remove('hidden');
+  resultBox.classList.add('hidden');
+  logBox.innerHTML='';
+  progressBar.style.width='0%';
+  stageText.textContent='Uploading ke /upload/app-v1/db...';
+  percentText.textContent='0%';
+  const form = new FormData();
+  form.append('video', selectedFile);
+  try{
+    const res = await fetch('/upload/app-v1/db', { method:'POST', body:form });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.message);
+    currentTaskId=data.taskId;
+    log(`Upload OK, taskId=${data.taskId}`);
+    log(`Durasi: ${Math.round(data.duration)}s`);
+    startStabilize(data.taskId);
+  }catch(err){
+    log('Upload gagal: '+err.message);
+    alert(err.message);
+    stabilizeBtn.disabled=false;
+    stabilizeBtn.textContent='Coba Lagi';
+  }
+});
+function startStabilize(taskId){
+  const shakiness=document.getElementById('shakiness').value;
+  const smoothing=document.getElementById('smoothing').value;
+  const crf=document.getElementById('crf').value;
+  const preset=document.getElementById('preset').value;
+  const keepAudio=document.getElementById('keepAudio').value;
+  const url = `/stabilizer/v-1/tospector?task=${taskId}&shakiness=${shakiness}&smoothing=${smoothing}&crf=${crf}&preset=${preset}&keepAudio=${keepAudio}`;
+  const es = new EventSource(url);
+  es.addEventListener('progress', e=>{
+    const d=JSON.parse(e.data);
+    percentText.textContent=d.percent+'%';
+    progressBar.style.width=d.percent+'%';
+    if(d.stage==='detect') stageText.textContent=`Pass 1/2: Analisis getaran... ${d.percent}%`;
+    if(d.stage==='transform') stageText.textContent=`Pass 2/2: Stabilisasi... ${d.percent}%`;
+  });
+  es.addEventListener('log', e=>{
+    const d=JSON.parse(e.data);
+    log(d.msg);
+  });
+  es.addEventListener('done', e=>{
+    const d=JSON.parse(e.data);
+    log('DONE: '+d.message);
+    stageText.textContent='Selesai!';
+    percentText.textContent='100%';
+    progressBar.style.width='100%';
+    previewResult.src=d.downloadUrl;
+    downloadBtn.href=d.downloadUrl;
+    resultBox.classList.remove('hidden');
+    resultBox.scrollIntoView({behavior:'smooth'});
+    stabilizeBtn.textContent='Stabilkan Video Lain';
+    stabilizeBtn.disabled=false;
+    es.close();
+  });
+  es.addEventListener('error', e=>{
+    try{
+      const d=JSON.parse(e.data);
+      log('ERROR: '+d.message);
+      if(d.hint) log('HINT: '+d.hint);
+      alert('Gagal: '+d.message);
+    }catch{
+      fetch(`/stabilizer/v-1/tospector?task=${taskId}`).then(r=>r.json()).then(j=>{
+        if(j.done){
+          previewResult.src=j.downloadUrl;
+          downloadBtn.href=j.downloadUrl;
+          resultBox.classList.remove('hidden');
+        }
+      });
+    }
+    es.close();
+    stabilizeBtn.disabled=false;
+    stabilizeBtn.textContent='Coba Lagi';
+  });
+}
+resetBtn.addEventListener('click', ()=>{ location.reload(); });
+</script>
+</body>
+</html>
