@@ -1,0 +1,23 @@
+{
+  "name": "tospector-video-stabilizer",
+  "version": "1.0.0",
+  "description": "Web Video Stabilizer - fluent-ffmpeg vidstab, low zoom, high quality",
+  "main": "app.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "ffmpeg-static": "^5.2.0",
+    "ffprobe-static": "^3.0.0",
+    "fluent-ffmpeg": "^2.1.2",
+    "multer": "^1.4.5-lts.1",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
